@@ -24,9 +24,9 @@ int main(int argc, char** argv){
 		ssize_t read_bytes;	
 		while((read_bytes=read(fd1, &buffer, buffer_size))>0){
 			write(1, &buffer, read_bytes);
+			write(fd2, "TASK ACCEPTED\n", 15);
+			close(fd2);
 		}
-		write(fd2, "TASK ACCEPTED\n", 15);
-		close(fd2);
 	}
 	
 	return 0;
