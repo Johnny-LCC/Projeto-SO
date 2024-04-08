@@ -5,8 +5,8 @@
 int main(int argc, char** argv){
 	/*if(argc <= 1){
 		printf("Opções:\n");
-		printf("./client [time] -u \"[prog] [args]\"\n");
-		printf("./client [time] -p \"prog-1 [args] | ... | prog-n [args]\"\n");
+		printf("./client execute [time] -u \"[prog] [args]\"\n");
+		printf("./client execute [time] -p \"prog-1 [args] | ... | prog-n [args]\"\n");
 		printf("./client status\n");
 		
 	}*/
