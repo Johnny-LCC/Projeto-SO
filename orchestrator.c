@@ -1,6 +1,7 @@
 #include "orchestrator.h"
 
 #define buffer_size 1024
+#define max_clients 10
 
 int main(int argc, char** argv){
 	/*int fd;
@@ -11,23 +12,35 @@ int main(int argc, char** argv){
 	fd = open(argv[1], O_CREAT, 0644);
 	close(fd);*/
 	
-	int in, out;
-	in = mkfifo("pipe_in", 0666);
-	out = mkfifo("pipe_out", 0666);
-	if(in == -1 || out == -1) printf("ERRO no FIFO\n");
+	int clients_pipes;
+	char pipe_names[7];
+	//int pointer = 0;
+	
+	char buffer[buffer_size];
+	ssize_t read_bytes;
+	
+	mkfifo("server_pipe", 0666);
 	
 	while(1){
-		int fd1 = open("pipe_in", O_RDONLY);
-		int fd2 = open("pipe_out", O_WRONLY);
-		char buffer[buffer_size];
-		//char aux[buffer_size];
-		ssize_t read_bytes;	
-		while((read_bytes=read(fd1, &buffer, buffer_size))>0){
-			write(1, &buffer, read_bytes);
-			write(fd2, "TASK ACCEPTED\n", 15);
-			close(fd2);
+		int server_pipe = open("server_pipe", O_RDONLY);
+		while((read_bytes=read(server_pipe, &buffer, buffer_size))>0){
+			if(strstr(buffer, "pipe")){
+				for(int i = 0; buffer[i]!='\0'; i++) pipe_names[i]=buffer[i];
+				clients_pipes = open(pipe_names, O_WRONLY);
+				//pointer = (pointer+1) % max_clients;
+			}
+			write(clients_pipes, "TESTE\n", 7);
 		}
 	}
+	
+	/*for(int i=0; i<max_clients; i++){
+		close(client_pipes[i]);
+		unlink(pipe_names[i]);
+		free(pipe_names[i]);
+	}
+	
+	close(server_pipe);
+	unlink("server_pipe")*/
 	
 	return 0;
 }
