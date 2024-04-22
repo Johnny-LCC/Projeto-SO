@@ -4,43 +4,43 @@
 #define max_clients 10
 
 int main(int argc, char** argv){
-	/*int fd;
+	
 	if(argc <= 1){
-		printf("Erro na chamada da função\n");
-		return 0;
+		printf("Execução:\n");
+		printf("./orchestrator output_folder parallel-tasks sched-policy\n");
+		return -1;
 	}
-	fd = open(argv[1], O_CREAT, 0644);
-	close(fd);*/
+	int fd;
+	fd = open(argv[1], O_CREAT, 0644); //O_TRUNC???
+	close(fd);
 	
-	int clients_pipes;
-	char pipe_names[7];
-	//int pointer = 0;
+	int cont = 0;
+	int client_pipe;
+	char pipe_name[6];
+	Task task;
 	
-	char buffer[buffer_size];
+	//char buffer[buffer_size];
 	ssize_t read_bytes;
 	
 	mkfifo("server_pipe", 0666);
 	
 	while(1){
 		int server_pipe = open("server_pipe", O_RDONLY);
-		while((read_bytes=read(server_pipe, &buffer, buffer_size))>0){
-			if(strstr(buffer, "pipe")){
-				for(int i = 0; buffer[i]!='\0'; i++) pipe_names[i]=buffer[i];
-				clients_pipes = open(pipe_names, O_WRONLY);
-				//pointer = (pointer+1) % max_clients;
-			}
-			write(clients_pipes, "TESTE\n", 7);
+		while((read_bytes=read(server_pipe, &task, sizeof(task)))>0){
+			cont++;
+			printf("%d - %d\n", task.pid_client, cont);
+			//printf("%s\n", task.args[0]);
+			
+			sprintf(pipe_name, "%d", task.pid_client);
+			client_pipe = open(pipe_name, O_WRONLY);
+			char r[buffer_size]; //9
+			sprintf(r, "TASK %d\n", cont);
+			write(client_pipe, r, strlen(r));
 		}
 	}
 	
-	/*for(int i=0; i<max_clients; i++){
-		close(client_pipes[i]);
-		unlink(pipe_names[i]);
-		free(pipe_names[i]);
-	}
-	
-	close(server_pipe);
-	unlink("server_pipe")*/
+	//close(server_pipe);
+	//unlink("server_pipe");
 	
 	return 0;
 }
