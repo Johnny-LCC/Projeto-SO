@@ -12,8 +12,6 @@ typedef enum{Sent, Scheduled, Executing, Completed} STATUS;
 
 typedef struct task{
 	pid_t pid_client;
-	char **args;
-	int narg;
+	char args[300];
 	STATUS status;
-	//int id;
 } Task;
