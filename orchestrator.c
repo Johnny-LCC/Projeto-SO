@@ -1,41 +1,38 @@
 #include "orchestrator.h"
 
-#define buffer_size 1024
-#define max_clients 10
+#define buffer_size 308
 
 int main(int argc, char** argv){
 	
 	if(argc <= 1){
 		printf("Execução:\n");
 		printf("./orchestrator output_folder parallel-tasks sched-policy\n");
-		return -1;
+		return 0;
 	}
 	int fd;
-	fd = open(argv[1], O_CREAT, 0644); //O_TRUNC???
+	fd = open(argv[1], O_CREAT | O_TRUNC, 0644);
 	close(fd);
+	
+	mkfifo("server_pipe", 0666);
 	
 	int cont = 0;
 	int client_pipe;
 	char pipe_name[6];
-	Task task;
-	
-	//char buffer[buffer_size];
+	Task buffer;
 	ssize_t read_bytes;
-	
-	mkfifo("server_pipe", 0666);
 	
 	while(1){
 		int server_pipe = open("server_pipe", O_RDONLY);
-		while((read_bytes=read(server_pipe, &task, sizeof(task)))>0){
-			cont++;
-			printf("%d - %d\n", task.pid_client, cont);
-			//printf("%s\n", task.args[0]);
+		while((read_bytes=read(server_pipe, &buffer, buffer_size))>0){
+			//printf("%d - %d\n", buffer.pid_client, cont++);
+			//printf("%s\n", buffer.args);
 			
-			sprintf(pipe_name, "%d", task.pid_client);
+			sprintf(pipe_name, "%d", buffer.pid_client);
 			client_pipe = open(pipe_name, O_WRONLY);
+			
 			char r[buffer_size]; //9
-			sprintf(r, "TASK %d\n", cont);
-			write(client_pipe, r, strlen(r));
+			sprintf(r, "TASK %d\n", ++cont);
+			write(client_pipe, r, 9);
 		}
 	}
 	
