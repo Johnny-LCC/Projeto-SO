@@ -2,21 +2,32 @@
 
 #define buffer_size 1024
 
+void func(int n, char **m, char *s){
+	int p = 0;
+	for(int i = 1; i<n; i++){
+		for(long unsigned int j = 0; j<strlen(m[i]); j++){
+			s[p]= m[i][j];
+			p++;
+		}
+		s[p] = ' ';
+		p++;
+	}
+	s[p] = '\0';
+}
+
 int main(int argc, char** argv){
 	if(argc <= 1){
 		printf("Opções:\n");
 		printf("./client execute [time] -u \"[prog] [args]\"\n");
 		printf("./client execute [time] -p \"prog-1 [args] | ... | prog-n [args]\"\n");
 		printf("./client status\n");
-		return -1;
+		
 	}
 	
 	Task task;
 	task.pid_client = getpid();
-	task.args = argv;
-	task.narg = argc;
+	func(argc, argv, task.args);
 	task.status = Sent;
-	//task.id = 0;
 	
 	char pipe_name[6];
 	char buffer[buffer_size];
