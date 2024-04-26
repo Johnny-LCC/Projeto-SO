@@ -118,6 +118,8 @@ int main(int argc, char** argv){
 							if(pid==0){
 								dup2(fd[i-1][0], 0);
 								close(fd[i-1][0]);
+								dup2(task_fd, 1);
+								close(task_fd);
 								execvp(cmd[0], cmd);
 								_exit(0);
 							}
