@@ -8,10 +8,18 @@
 #include <sys/stat.h>
 #include <time.h>
 
-typedef enum{Sent, Scheduled, Executing, Completed} STATUS;
+//typedef enum{Scheduled, Executing} STATUS;
 
 typedef struct task{
 	pid_t pid_client;
+	int time;
+	int pipe;
 	char args[300];
-	STATUS status;
+	//STATUS status;
 } Task;
+
+typedef struct ltask{
+	int id;
+	Task task;
+	struct ltask *prox;
+} LTask;
