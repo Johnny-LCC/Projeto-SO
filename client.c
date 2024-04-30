@@ -26,17 +26,16 @@ int main(int argc, char** argv){
 	
 	Task task;
 	task.pid_client = getpid();
+	task.id = -1;
 	if(strcmp(argv[1], "execute") == 0){
 		task.time = atoi(argv[2]);
 		if(strcmp(argv[3], "-p")==0) task.pipe = 1;
 		else task.pipe = 0;
 		func(argc, argv, task.args);
-		//task.status = Scheduled;
 	}
 	else if(strcmp(argv[1], "status") == 0){
 		task.time = task.pipe = 0;
 		strcpy(task.args, argv[1]);
-		//task.status = Executing;
 	}
 	else return -1;
 	
@@ -51,8 +50,9 @@ int main(int argc, char** argv){
 	write(server_pipe, &task, sizeof(task));
 	
 	int fd = open(pipe_name, O_RDONLY);
-	read_bytes = read(fd, &buffer, buffer_size);
-	write(1, &buffer, read_bytes);
+	while((read_bytes = read(fd, &buffer, buffer_size)) > 0){
+		write(1, &buffer, read_bytes);
+	}
 	
 	close(fd);
 	close(server_pipe);
