@@ -6,7 +6,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <time.h>
+#include <sys/time.h>
 
 typedef struct task{
 	pid_t pid_client;
