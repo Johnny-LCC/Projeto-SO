@@ -30,14 +30,26 @@ int main(int argc, char** argv){
 	if(strcmp(argv[1], "execute") == 0){
 		task.time = atoi(argv[2]);
 		if(strcmp(argv[3], "-p")==0) task.pipe = 1;
-		else task.pipe = 0;
+		else if (strcmp(argv[3], "-u")==0) task.pipe = 0;
+		else{
+			printf("Flag inválida\n");
+			return -1;
+		}
 		func(argc, argv, task.args);
 	}
 	else if(strcmp(argv[1], "status") == 0){
 		task.time = task.pipe = 0;
 		strcpy(task.args, argv[1]);
 	}
-	else return -1;
+	else if(strcmp(argv[1], "rem") == 0){
+		task.time = task.pipe = 0;
+		strcpy(task.args, argv[1]);
+		task.id = atoi(argv[2]);
+	}
+	else{
+		printf("Erro\n");
+		return -1;
+	}
 	
 	char pipe_name[6];
 	char buffer[buffer_size];
