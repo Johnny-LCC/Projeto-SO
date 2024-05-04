@@ -1,7 +1,5 @@
 #include "orchestrator.h"
 
-#define buffer_size 316
-
 int func_aux(char *dest[], char* src){
 	int r=0;
 	char* command = strdup(src);
@@ -40,30 +38,28 @@ int length(LTask *l){
 	return r;
 }
 
-void insertOrd(LTask* l, Task t){ //SJF
+void insertOrd(LTask *l, Task x){ //SJF
 	LTask new = malloc(sizeof(struct ltask));
-	new->task = t;
+	new->task = x;
 	new->prox = NULL;
-	LTask prev = NULL, aux = *l;
-	for(; aux && aux->task.time < t.time; prev=aux, l=&(aux->prox));
+	LTask prev = NULL;
+	for(; *l && (*l)->task.time <= x.time; prev=(*l), l=&((*l)->prox));
 	if(prev){
-		new->prox = aux;
+		new->prox = (*l);
 		prev->prox = new;
 	}
 	else{
-		new->prox = aux;
-		aux = new;
+		new->prox = (*l);
+		*l = new;
 	}
 }
 
 int removeOrd(LTask *l, Task t){
 	LTask prev = NULL;
-	LTask aux = *l;
-	for(; aux && aux->task.id!=t.id; prev=aux, l=&(aux->prox));
-	if(!aux) return 1;
-	if(!prev) aux = aux->prox;
-	else prev->prox = aux->prox;
-	free(aux);
+	for(; (*l) && (*l)->task.id!=t.id; prev=(*l), l=&((*l)->prox));
+	if(!(*l)) return 1;
+	if(!prev) (*l) = (*l)->prox;
+	else prev->prox = (*l)->prox;
 	return 0;
 }
 
@@ -71,11 +67,10 @@ void append(LTask *l, Task t){ //FCFS
 	LTask new = malloc(sizeof(struct ltask));
 	new->task = t;
 	new->prox = NULL;
-	LTask aux = *l;
-	if(!aux) (*l)=new;
+	if(!(*l)) (*l)=new;
 	else{
-		for(; aux->prox; l=&(aux->prox));
-		aux->prox = new;
+		for(; (*l)->prox; l=&((*l)->prox));
+		(*l)->prox = new;
 	}
 }
 
@@ -85,11 +80,19 @@ int main(int argc, char** argv){
 		printf("./orchestrator output_folder parallel-tasks sched-policy\n");
 		return -1;
 	}
-	//int buffer_size = sizeof(struct task);
 	
-	int log_fd, ls=0;
-	log_fd = open(argv[1], O_CREAT | O_RDWR, 0644); //O_TRUNC?
-	//close(log_fd); ///
+	int esc;
+	if(strcmp(argv[3], "FCFS")==0 || strcmp(argv[3], "fcfs")==0) esc = 0;
+	else if(strcmp(argv[3], "SJF")==0 || strcmp(argv[3], "sjf")==0) esc = 1;
+	else{
+		printf("Erro - escalonamento inválido\n");
+		return -1;
+	}
+	
+	int log_fd;
+	log_fd = open(argv[1], O_CREAT | O_TRUNC | O_RDWR, 0644);
+	if(log_fd == -1) perror("LOG: ");
+	close(log_fd); //
 	
 	mkfifo("server_pipe", 0666);
 	int server_pipe;
@@ -101,6 +104,7 @@ int main(int argc, char** argv){
 	int n_ptask = atoi(argv[2]);
 	
 	Task buffer;
+	int buffer_size = sizeof(struct task);
 	ssize_t read_bytes;
 	LTask sch = NULL;
 	LTask ex = NULL;
@@ -114,9 +118,8 @@ int main(int argc, char** argv){
 			if(strcmp(buffer.args, "status") == 0){
 				pid_t pid = fork();
 				if(pid == 0){
-					
-					LTask l[2]; //
-					l[0] = sch; l[1] = ex; //
+					LTask l[2];
+					l[0] = sch; l[1] = ex;
 					char *aux[] = {"Scheduled:", "Executing:"};
 					char r[1024];
 					for(int i=0; i<2; i++){
@@ -124,21 +127,27 @@ int main(int argc, char** argv){
 						write(client_pipe, &r, strlen(r));
 						if(l[i]==NULL) write(client_pipe, "-----\n", 6); 
 						while(l[i]!=NULL){
-							sprintf(r, "%d: %s - %dms\n", l[i]->task.id, l[i]->task.args, l[i]->task.time);
-							write(client_pipe, &r, strlen(r)); //
+							sprintf(r, "%d: %s\n", l[i]->task.id, l[i]->task.args);
+							write(client_pipe, &r, strlen(r));
 							l[i]=l[i]->prox;
 						}
 					}
 					
-					sprintf(r, "Completed: FICHEIRO LOG\n");
+					sprintf(r, "Completed:\n");
 					write(client_pipe, &r, strlen(r));
-					lseek(log_fd, -ls, SEEK_END);
-					while((read_bytes=read(log_fd, &buffer, buffer_size))>0){
+					
+					int fd;
+					fd = open(argv[1], O_RDONLY);
+					if (fd == -1) perror("STATUS: ");
+					while((read_bytes=read(fd, &buffer, buffer_size))>0){
 						sprintf(r, "%d: %s - %dms\n", buffer.id, buffer.args, buffer.time);
 						write(client_pipe, &r, strlen(r));
 					}
-					
+					close(fd);
 				}
+			}
+			else if((strcmp(buffer.args, "rem") == 0)){
+				removeOrd(&ex, buffer);
 			}
 			else{
 				id_task++;
@@ -150,8 +159,9 @@ int main(int argc, char** argv){
 				char aux[16];
 				sprintf(aux, "Task%d", id_task);
 				int task_fd = open(aux, O_CREAT | O_WRONLY, 0644);
+				if(task_fd == -1) perror("TASK: ");
 				
-				if(strcmp(argv[3], "FCFS")==0 || strcmp(argv[3], "fcfs")==0) append(&sch, buffer);
+				if(esc == 0) append(&sch, buffer);
 				else insertOrd(&sch, buffer);
 				
 				int net = length(&ex);
@@ -162,8 +172,13 @@ int main(int argc, char** argv){
 					free(temp);
 					insertOrd(&ex, task);
 					
-					//log_fd = open(argv[1], O_CREAT|O_WRONLY, 0644); ///
+					char aux_rem[32];
+					sprintf(aux_rem, "./client rem %d", task.id);
+					char *rem[3];
+					command(rem, aux_rem);
 					
+					struct timeval start, end;
+										
 					if(task.pipe==0){ //-u
 						char *cmd[10];
 						command(cmd, task.args);
@@ -171,19 +186,34 @@ int main(int argc, char** argv){
 						if(pid==0){
 							dup2(task_fd, 1);
 							close(task_fd);
-							execvp(cmd[0], cmd);
-							removeOrd(&ex, task);
-							//write(log_fd, &task, buffer_size); ///
+							gettimeofday(&start, NULL);
+							
+							pid_t ppid = fork();
+							if(ppid == 0){
+								execvp(cmd[0], cmd);
+								_exit(0);
+							}
+							
+							int status;
+							wait(&status);
+							gettimeofday(&end, NULL);
+							task.time = (end.tv_sec*1000 + end.tv_usec) - (start.tv_sec*1000 + start.tv_usec);
+							
+							int fd;
+							fd = open(argv[1], O_WRONLY);
+							if(fd == -1) perror("EXECUTE: ");
+							lseek(fd, 0, SEEK_END);
+							write(fd, &task, buffer_size);
+							close(fd);
+							
+							execvp(rem[0], rem);
+							
 							_exit(0);
 						}
 						else{
 							close(task_fd);
-							int status;
-							wait(&status);
-							if(!WIFEXITED(status)) printf("Erro - Task %d\n", id_task);
+							/////removeOrd(&ex, task);
 						}
-						write(log_fd, &task, buffer_size);
-						ls += buffer_size;
 					}
 					else{ //-p
 						char *arg[10];
@@ -214,13 +244,33 @@ int main(int argc, char** argv){
 									close(fd[i-1][0]);
 									dup2(task_fd, 1);
 									close(task_fd);
-									execvp(cmd[0], cmd);
-									removeOrd(&ex, task);
-									//write(log_fd, &task, buffer_size); ///
+									gettimeofday(&start, NULL);
+									
+									pid_t ppid = fork();
+									if(ppid == 0){
+										execvp(cmd[0], cmd);
+										_exit(0);
+									}
+									
+									int status;
+									wait(&status);
+									gettimeofday(&end, NULL);
+									task.time = (end.tv_sec*1000 + end.tv_usec) - (start.tv_sec*1000 + start.tv_usec);
+									
+									int fd;
+									fd = open(argv[1], O_WRONLY);
+									if(fd == -1) perror("EXECUTE: ");
+									lseek(fd, 0, SEEK_END);
+									write(fd, &task, buffer_size);
+									close(fd);
+									
+									execvp(rem[0], rem);
+									
 									_exit(0);
 								}
 								else{
 									close(fd[i-1][0]);
+									///////removeOrd(&ex, task);
 								}
 							}
 							else{
@@ -247,13 +297,11 @@ int main(int argc, char** argv){
 						for(int i=0; i<N; i++){
 							pid_t tpid = wait(&status);
 							if(!WIFEXITED(status)){
-								printf("pid do filho: %d\n", tpid);
+								write(task_fd, &tpid, sizeof(pid_t)); 
+								write(client_pipe, "Task Error\n", 11);
 							}
 						}
-						write(log_fd, &task, buffer_size);
-						ls += buffer_size;
 					}
-					//close(log_fd);///
 				}
 				close(task_fd);
 			}	
@@ -261,7 +309,6 @@ int main(int argc, char** argv){
 		}
 		close(server_pipe);
 	}
-	close(log_fd);
 	unlink("server_pipe");
 	
 	return 0;
