@@ -1,19 +1,6 @@
-#include "orchestrator.h"
+#include "../include/orchestrator.h"
 
 #define buffer_size 1024
-
-void func(int n, char **m, char *s){
-	int p = 0;
-	for(int i = 4; i<n; i++){
-		for(long unsigned int j = 0; j<strlen(m[i]); j++){
-			s[p]= m[i][j];
-			p++;
-		}
-		s[p] = ' ';
-		p++;
-	}
-	s[p] = '\0';
-}
 
 int main(int argc, char** argv){
 	if(argc <= 1){
@@ -35,7 +22,7 @@ int main(int argc, char** argv){
 			printf("Flag inválida\n");
 			return -1;
 		}
-		func(argc, argv, task.args);
+		strcpy(task.args, argv[4]);
 	}
 	else if(strcmp(argv[1], "status") == 0){
 		task.time = task.pipe = 0;
