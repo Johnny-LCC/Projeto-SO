@@ -192,7 +192,7 @@ int main(int argc, char** argv){
 				pid_t pid = fork();
 				if(pid==0){
 					char aux[16];
-					sprintf(aux, "../tmp/Task%d", id_task);
+					sprintf(aux, "../tmp/Task%d", task.id);
 					int task_fd = open(aux, O_CREAT | O_WRONLY, 0644);
 					if(task_fd == -1) perror("TASK: ");
 				
@@ -248,7 +248,7 @@ int main(int argc, char** argv){
 						pid_t pid = fork();
 						if(pid==0){
 							char aux[16];
-							sprintf(aux, "../tmp/Task%d", id_task);
+							sprintf(aux, "../tmp/Task%d", task.id);
 							int task_fd = open(aux, O_CREAT | O_WRONLY, 0644);
 							if(task_fd == -1) perror("TASK: ");
 						
